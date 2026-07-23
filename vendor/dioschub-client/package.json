@@ -1,0 +1,46 @@
+{
+  "name": "@intrigsoft/dioschub-client",
+  "version": "0.1.1-rc.23",
+  "description": "Client SDK for Diosc AI Assistant Kit — script loader and typed command API. VENDORED SNAPSHOT: upstream source of truth is intrigsoft/diosc-ai modules/client; replace with the npm package once published.",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "diosc",
+    "diosc-ai",
+    "ai-assistant",
+    "web-components",
+    "sdk",
+    "loader"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/intrigsoft/diosc-ai",
+    "directory": "modules/client"
+  },
+  "private": true,
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

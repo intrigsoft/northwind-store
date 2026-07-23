@@ -1,0 +1,25 @@
+{
+  "name": "@northwind/storefront",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Northwind — a Next.js marketplace storefront demo host for Dioschub. All catalog/cart/order data is served by the app's own Next.js route handlers; the frontend hardcodes nothing.",
+  "scripts": {
+    "dev": "next dev --port 3010",
+    "build": "next build",
+    "start": "next start --port 3010",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@intrigsoft/dioschub-client": "file:vendor/dioschub-client",
+    "next": "^15.1.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.2"
+  }
+}

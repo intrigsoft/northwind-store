@@ -1,0 +1,21 @@
+# Per-Dockerfile ignore for the storefront build (BuildKit honours
+# `<Dockerfile>.dockerignore` over any repo-root `.dockerignore`).
+
+# Heavy / regenerated — always reinstalled or rebuilt in the image.
+**/node_modules/
+**/.next/
+**/dist/
+**/coverage/
+**/*.tsbuildinfo
+
+# VCS / tooling / local env.
+.git/
+.idea/
+**/*.log
+**/.env
+**/.env.local
+**/.env.*.local
+.claude/
+
+# The MCP connector is a separate service/image — not part of the storefront build.
+mcp/
