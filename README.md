@@ -1,18 +1,24 @@
-# Northwind — Next.js Marketplace Storefront (Dioschub demo)
+# Northwind — Next.js Marketplace Storefront (DioscHub tutorial)
+
+> **You are on `main` — the tutorial starting point.** This branch is a complete,
+> working storefront with **no AI integration**. The DioscHub tutorial walks you
+> from here to an embedded, tool-using assistant.
+>
+> - **Finished result**: the [`production`](../../tree/production) branch
+>   (full DioscHub integration — the assistant, BYOA bind, and MCP connector).
+> - **Live demo**: <https://northwind-staging.up.railway.app>
+> - **Tutorial**: DioscHub docs → *Embed an assistant in Next.js* (link TBD).
+> - Bulk copy-paste files for the tutorial steps live in [`tutorial/`](./tutorial/).
 
 Northwind is a responsive, multi-page eCommerce storefront built as a **demo host
-application for Dioschub**. It is a single **Next.js 15 (App Router) full-stack
-app**: the same project serves the UI *and* the REST backend (via route handlers),
-which also makes it a working example of embedding the Dioschub assistant inside
-**Next.js**.
+application for DioscHub**. It is a single **Next.js 15 (App Router) full-stack
+app**: the same project serves the UI *and* the REST backend (via route handlers).
 
 It implements the full shopping journey — browse → product → cart → checkout →
-orders — on a real **anonymous → authenticated** session model, which is the
-surface Dioschub plugs into: browse as a guest, sign in mid-session, and the
-assistant operates *as the logged-in user* under their permissions.
-
-> Recreated from a static HTML design handoff. The CSS design system is lifted
-> nearly verbatim; everything else is a fresh TypeScript implementation.
+orders — on a real **anonymous → authenticated** session model. That session
+model is the surface the tutorial's assistant plugs into: browse as a guest,
+sign in mid-session, and (once integrated) the assistant operates *as the
+logged-in user* under their permissions.
 
 ## Key property: the frontend hardcodes **no** data
 
@@ -33,38 +39,16 @@ by a client component.
 
 - **Next.js 15** App Router, **React 19**, **TypeScript**
 - Backend = **Next.js route handlers** + an in-memory store (the demo "database")
-- **`@intrigsoft/dioschub-client`** for the embedded assistant
 - Plain CSS design system (no Tailwind/preprocessor) — `app/globals.css`
 
 ## Getting started
 
 ```bash
-# 1. Build the vendored client SDK (file: dep — not published to npm yet;
-#    vendored snapshot of intrigsoft/diosc-ai modules/client)
-cd vendor/dioschub-client && npm install && npm run build && cd ../..
-
-# 2. Install + run the storefront
 npm install
-
-# optional — only needed to embed the assistant
-cp .env.example .env.local      # then fill in the Dioschub values
-
 npm run dev                     # http://localhost:3010
 ```
 
-The store is fully functional **without** any Dioschub configuration — the
-assistant simply isn't mounted until you set `NEXT_PUBLIC_DIOSC_API_KEY`.
-
-### Environment variables
-
-| Variable | Side | Purpose |
-| --- | --- | --- |
-| `NEXT_PUBLIC_DIOSC_BACKEND_URL` | client | Dioschub hub URL the kit loads/connects to (default `http://localhost:3333`) |
-| `NEXT_PUBLIC_DIOSC_API_KEY` | client | Embed API key from the Dioschub admin portal. Blank ⇒ no assistant |
-| `NEXT_PUBLIC_DIOSC_ASSISTANT_ID` | client | Assistant to converse with (optional) |
-| `DIOSC_HUB_BACKEND_URL` | server | Hub URL the `/api/diosc/bind` endpoint forwards to |
-| `DIOSC_HUB_API_KEY` | server | Host deploy-time secret for binding. **Never exposed to the browser** |
-| `DIOSC_HUB_ROLE_ID` | server | Dioschub Role the storefront's users map to |
+That's it — the bare storefront needs no configuration and no external services.
 
 ## Architecture
 
@@ -80,7 +64,6 @@ app/
     wishlist/               GET · POST/DELETE [productId]
     checkout/               POST   place order (guest checkout allowed)
     orders/                 GET list · [id] · [id]/reorder
-    diosc/bind/             POST   host-side Dioschub bind endpoint
   (pages)                   home · c/[slug] · search · p/[id] · cart ·
                             checkout · confirm/[id] · orders · wishlist · account
 server/                     ← server-only modules (never imported by the client)
@@ -91,7 +74,8 @@ server/                     ← server-only modules (never imported by the clien
   queries.ts                search / filter / sort
 components/                 ← client UI (StoreProvider context + views)
 lib/                        ← typed API client, shared types, formatting
-mcp/                        ← MCP connector (separate package; see mcp/README.md)
+tutorial/                   ← copy-paste material for the DioscHub tutorial
+                              (not part of the app build)
 ```
 
 ### Sessions & the anonymous → authenticated flow
@@ -113,44 +97,24 @@ Totals returned by the cart/checkout endpoints are always computed on the server
 (`server/pricing.ts`): free shipping ≥ $50 (standard), else $5.99 — Express $9.99,
 Next-day $16.99; 8% tax on the post-discount subtotal; promo `NORTH10` = 10% off.
 
-## Dioschub integration
+## What the tutorial adds
 
-The assistant is embedded in the root layout via
-`components/assistant/AssistantProvider.tsx`, mirroring the acme-helpdesk
-integration, adapted for Next.js:
+Starting from this branch, the DioscHub tutorial builds (in order):
 
-- Loads the kit with `@intrigsoft/dioschub-client` and renders `<diosc-chat>`.
-- Configures `bindEndpoint: '/api/diosc/bind'` — a **same-origin** route handler.
-  Cookies flow to it automatically, so no explicit bind headers are needed.
-- Connects in **anonymous-capable** mode and, on sign-in, promotes the session in
-  place (`reauth`) — the same anon→auth flow the storefront itself uses.
-- Registers a client-side `navigate` tool and streams route changes as page
-  context.
+1. **Embed the assistant kit** — a provider component in the root layout that
+   loads the kit and renders `<diosc-chat>`.
+2. **The bind route** (`app/api/diosc/bind`) — BYOA: forwards the visitor's
+   identity + session cookie to the hub, authenticated with a server-side admin
+   key that never reaches the browser.
+3. **An MCP server** (`mcp/`) — exposes the shopping journey as assistant tools
+   (`search_products`, `add_to_cart`, `place_order`, …) by replaying the
+   visitor's own session cookie against the `/api/*` routes above.
+4. **Hub configuration** — roles, tool grants, and approval gating for the
+   destructive `place_order` tool.
 
-### BYOA / credential-blind
-
-`/api/diosc/bind` forwards the visitor's **identity** (or `null` for a guest) plus
-a **BYOA auth artifact** — here, the visitor's own `nw_sid` session cookie — to the
-hub, authenticated with the host's `DIOSC_HUB_API_KEY`. A Northwind MCP connector
-can replay that cookie against this storefront's `/api/*` routes to act *as the
-visitor*, under their existing permissions. The assistant never sees credentials,
-and the hub API key never reaches the browser.
-
-### MCP connector
-
-A **Northwind MCP server** lives in [`mcp/`](./mcp/README.md). It exposes the
-shopping journey as assistant tools (`search_products`, `add_to_cart`,
-`place_order`, …) — a thin, session-authorized layer over the `/api/*` routes
-above. Each tool replays the visitor's forwarded `nw_sid` cookie, so the
-assistant acts *as the visitor*; `place_order` is flagged destructive for the
-hub's approval workflow. Run it alongside the storefront:
-
-```bash
-cd mcp && npm install && cp .env.example .env && npm run dev   # Streamable HTTP on :3011
-```
-
-Register `http://localhost:3011/mcp` as an MCP connector in the Dioschub admin
-portal. See [`mcp/README.md`](./mcp/README.md).
+The finished version of all of it is on the
+[`production`](../../tree/production) branch; the bulk files you'll copy along
+the way are in [`tutorial/`](./tutorial/).
 
 ## Scripts
 
@@ -161,10 +125,6 @@ portal. See [`mcp/README.md`](./mcp/README.md).
 | `npm run lint` | Next.js lint |
 | `npm run typecheck` | `tsc --noEmit` |
 
-## Notes & limitations (it's a demo)
+## License
 
-- The in-memory store resets on every server restart — intentional; no database.
-- Demo auth accepts any credentials; cards/payment are display-only (no PANs are
-  ever stored or processed).
-- Product imagery is proxied from a public stock-photo CDN; a real deployment
-  would serve its own assets through the same `/api/images` route.
+MIT © IntrigSoft

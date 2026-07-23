@@ -3,9 +3,9 @@
  *
  * Every visitor gets an opaque, httpOnly session cookie on first contact. The
  * cookie carries no identity — it just keys the in-memory session (cart,
- * wishlist, auth state) server-side. This is the BYOA-friendly shape: the
- * storefront owns the session; Dioschub binds to the same visitor via the
- * bearer/identity forwarded by `/api/diosc/bind`.
+ * wishlist, auth state) server-side. This shape is what later lets an
+ * assistant bind to the same visitor (see the DioscHub tutorial): the
+ * storefront owns the session end-to-end.
  */
 import { cookies } from 'next/headers';
 import { getOrCreateSession, hasSession, newSessionId, type Session } from './store';

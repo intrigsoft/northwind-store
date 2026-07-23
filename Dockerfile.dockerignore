@@ -17,5 +17,8 @@
 **/.env.*.local
 .claude/
 
-# The MCP connector is a separate service/image — not part of the storefront build.
+# Tutorial material — not part of the app build.
+tutorial/
+
+# The MCP connector (created during the tutorial) is a separate service/image.
 mcp/
