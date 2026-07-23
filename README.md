@@ -1,5 +1,13 @@
 # Northwind — Next.js Marketplace Storefront (Dioschub demo)
 
+> **You are on `production` — the finished integration.** This branch is the
+> complete product: storefront + embedded DioscHub assistant + MCP connector.
+> CI and the live demo (<https://northwind-staging.up.railway.app>) run from
+> here. The tutorial *starting point* (the same storefront with no AI
+> integration) is the [`main`](../../tree/main) branch.
+>
+> Requires DioscHub ≥ 0.1.1-rc.23.
+
 Northwind is a responsive, multi-page eCommerce storefront built as a **demo host
 application for Dioschub**. It is a single **Next.js 15 (App Router) full-stack
 app**: the same project serves the UI *and* the REST backend (via route handlers),
@@ -114,6 +122,22 @@ Totals returned by the cart/checkout endpoints are always computed on the server
 Next-day $16.99; 8% tax on the post-discount subtotal; promo `NORTH10` = 10% off.
 
 ## Dioschub integration
+
+### Integration surface
+
+The **entire** DioscHub integration is the delta between this branch and
+[`main`](../../tree/main) — verify with `git diff main..production --stat`:
+
+| What | Files |
+| --- | --- |
+| Kit embed | `components/assistant/AssistantProvider.tsx` + its mount/config in `app/layout.tsx` |
+| BYOA bind route | `app/api/diosc/bind/route.ts` |
+| MCP connector | `mcp/` (own package + Dockerfile) |
+| SDK (vendored until npm) | `vendor/dioschub-client/` + the `file:` dep in `package.json` |
+| Config | `DIOSC_*` entries in `.env.example`; SDK build stage in `Dockerfile` |
+| Hub-side prompt | `ASSISTANT-PROMPT.md` |
+
+Nothing else in the app changes. That is the point of the sample.
 
 The assistant is embedded in the root layout via
 `components/assistant/AssistantProvider.tsx`, mirroring the acme-helpdesk

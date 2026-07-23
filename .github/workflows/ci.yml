@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [production]
+  pull_request:
+    branches: [production]
+
+jobs:
+  storefront:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build vendored client SDK
+        run: cd vendor/dioschub-client && npm install --no-audit --no-fund && npm run build
+      - name: Install
+        run: npm install --no-audit --no-fund --install-links
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+
+  mcp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: cd mcp && npm ci --no-audit --no-fund
+      - name: Build
+        run: cd mcp && npm run build
