@@ -7,12 +7,16 @@ the current visitor.
 
 It adds **no privileges of its own**: every tool replays the visitor's own
 storefront session cookie (`nw_sid`) against the storefront API, so the assistant
-can only see and do what the signed-in (or guest) visitor can. The model never
-sees the cookie — it rides along on each tool call's **HTTP request headers**
-(credential-blind, MCP spec 2025-11-25).
+can only see and do what the signed-in (or guest) visitor can — and it is also
+the **token issuer** (MCP authorization spec 2025-11-25): at bind time it caches
+the visitor's session cookie and mints a short-lived, audience-bound HS256 JWT
+referencing it. The hub holds only that JWT; each tool call presents it as
+`Authorization: Bearer`, and this server exchanges it for the cached cookie.
+The model never sees either token, and no token is passed through upstream.
 
 ```
-Dioschub ──(tool call, HTTP Cookie header)──▶ Northwind MCP ──(Cookie: nw_sid=…)──▶ storefront /api/*
+storefront ──(identity + cookie)──▶ POST /auth/bind ──(JWT artifact)──▶ hub
+Dioschub ──(tool call, Bearer JWT)──▶ Northwind MCP ──(Cookie: nw_sid=…)──▶ storefront /api/*
 ```
 
 ## Tools
@@ -68,16 +72,19 @@ curl -s localhost:3011/api/tools/call \
 ## Wiring into Dioschub
 
 Register this server as an MCP connector in the Dioschub admin portal (URL
-`http://localhost:3011/mcp`, Streamable HTTP). Dioschub forwards the visitor's
-bound auth artifact (the `nw_sid` cookie captured by the storefront's
-`/api/diosc/bind`) as HTTP headers on each tool call, and applies the role's
-approval policy to destructive tools.
+`http://localhost:3011/mcp`, Streamable HTTP, no static auth). Dioschub forwards
+the session's bound auth artifact — the JWT this server issued at bind time — as
+the `Authorization` header on each tool call, and applies the role's approval
+policy to destructive tools. Configure `mcp/.env` with the hub URL + an admin
+`auth:bind` capability key (this server performs the hub bind) and the two
+secrets (`MCP_JWT_SECRET`, `MCP_BIND_SECRET`).
 
 ## Endpoints
 
 | Path | Purpose |
 | --- | --- |
-| `POST /mcp` | MCP Streamable HTTP transport |
+| `POST /mcp` | MCP Streamable HTTP transport (tool calls require the issued Bearer JWT; invalid/expired → 401 + `WWW-Authenticate`) |
+| `POST /auth/bind` | Storefront hands over identity + session cookie; this server mints the JWT and registers the session with the hub |
 | `POST /api/resolve-user` | Identity resolver (replays the cookie to `/api/auth/me`) |
 | `GET /api/tools` · `POST /api/tools/call` | Local introspection / testing |
 | `GET /health` · `GET /` | Health / info |

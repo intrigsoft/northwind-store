@@ -70,9 +70,14 @@ assistant simply isn't mounted until you set `NEXT_PUBLIC_DIOSC_API_KEY`.
 | `NEXT_PUBLIC_DIOSC_BACKEND_URL` | client | Dioschub hub URL the kit loads/connects to (default `http://localhost:3333`) |
 | `NEXT_PUBLIC_DIOSC_API_KEY` | client | Embed API key from the Dioschub admin portal. Blank ⇒ no assistant |
 | `NEXT_PUBLIC_DIOSC_ASSISTANT_ID` | client | Assistant to converse with (optional) |
-| `DIOSC_HUB_BACKEND_URL` | server | Hub URL the `/api/diosc/bind` endpoint forwards to |
-| `DIOSC_HUB_API_KEY` | server | Host deploy-time secret for binding. **Never exposed to the browser** |
+| `NORTHWIND_MCP_URL` | server | The Northwind MCP server the `/api/diosc/bind` endpoint hands sessions to |
+| `MCP_BIND_SECRET` | server | Shared secret authenticating the storefront to the MCP server's `/auth/bind` |
 | `DIOSC_HUB_ROLE_ID` | server | Dioschub Role the storefront's users map to |
+
+The hub credentials (`DIOSC_HUB_URL`, `DIOSC_HUB_API_KEY` — an admin capability
+key with the `auth:bind` scope) and the JWT signing secret live on the **MCP
+server** (`mcp/.env.example`), not here: the MCP server is the token issuer and
+the only party that talks to the hub at bind time.
 
 ## Architecture
 
@@ -131,7 +136,7 @@ The **entire** DioscHub integration is the delta between this branch and
 | What | Files |
 | --- | --- |
 | Kit embed | `components/assistant/AssistantProvider.tsx` + its mount/config in `app/layout.tsx` |
-| BYOA bind route | `app/api/diosc/bind/route.ts` |
+| Bind route (host → MCP broker) | `app/api/diosc/bind/route.ts` |
 | MCP connector | `mcp/` (own package + Dockerfile) |
 | SDK (vendored until npm) | `vendor/dioschub-client/` + the `file:` dep in `package.json` |
 | Config | `DIOSC_*` entries in `.env.example`; SDK build stage in `Dockerfile` |
@@ -151,14 +156,18 @@ integration, adapted for Next.js:
 - Registers a client-side `navigate` tool and streams route changes as page
   context.
 
-### BYOA / credential-blind
+### OAuth-style token exchange / credential-blind
 
-`/api/diosc/bind` forwards the visitor's **identity** (or `null` for a guest) plus
-a **BYOA auth artifact** — here, the visitor's own `nw_sid` session cookie — to the
-hub, authenticated with the host's `DIOSC_HUB_API_KEY`. A Northwind MCP connector
-can replay that cookie against this storefront's `/api/*` routes to act *as the
-visitor*, under their existing permissions. The assistant never sees credentials,
-and the hub API key never reaches the browser.
+Per the MCP authorization spec (2025-11-25), the MCP server acts as a resource
+server that accepts only tokens issued for itself — and here it is also the
+**issuer**. `/api/diosc/bind` hands the visitor's **identity** (or `null` for a
+guest) plus their `nw_sid` session cookie to the MCP server's `/auth/bind`. The
+MCP server caches the cookie, mints a short-lived audience-bound **HS256 JWT**
+referencing it, and registers that JWT with the hub as the session's auth
+artifact. Each tool call arrives with `Authorization: Bearer <jwt>`; the MCP
+server validates it and exchanges it for the cached cookie to call `/api/*` *as
+the visitor*. The assistant never sees credentials, the hub never sees the
+cookie, and no token is ever passed through upstream.
 
 ### MCP connector
 

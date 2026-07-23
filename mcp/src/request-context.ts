@@ -1,12 +1,11 @@
 /**
- * Request context for MCP tool calls (BYOA plumbing).
+ * Request context for MCP tool calls.
  *
- * When Dioschub invokes an MCP tool on behalf of a visitor, it forwards that
- * visitor's auth artifacts in the tool call's `_meta` property. For Northwind
- * the artifact is the storefront **session cookie** (`nw_sid`), captured at bind
- * time by `/api/diosc/bind`. We extract it here and replay it against the
- * storefront API so every tool acts *as the visitor* — credential-blind: the
- * model never sees the cookie, it just rides along in `_meta`.
+ * The visitor's session headers come out of the auth broker (see
+ * auth-broker.ts): the hub presents the JWT this server issued at bind time,
+ * and the broker exchanges it for the cached storefront cookie. This module
+ * just shapes those headers for replay against the storefront API — the model
+ * never sees the cookie, and the JWT never leaves this server.
  */
 
 export interface RequestContext {
@@ -33,23 +32,6 @@ export function extractRequestContext(meta: Record<string, any> | undefined): Re
     for (const [key, value] of Object.entries(meta.cookies)) {
       if (typeof value === 'string') context.cookies[key] = value;
     }
-  }
-  return context;
-}
-
-/**
- * Extract headers/cookies from the tool call's HTTP request headers. DioscHub
- * sends the visitor's auth (the `nw_sid` session cookie) as the request's HTTP
- * headers (MCP spec 2025-11-25), not in `_meta`. Header names are lowercased.
- */
-export function extractRequestContextFromHeaders(
-  httpHeaders: Record<string, string | string[] | undefined> | undefined,
-): RequestContext {
-  const context: RequestContext = { headers: {}, cookies: {} };
-  if (!httpHeaders) return context;
-  for (const [key, value] of Object.entries(httpHeaders)) {
-    if (typeof value === 'string') context.headers[key.toLowerCase()] = value;
-    else if (Array.isArray(value) && value.length > 0) context.headers[key.toLowerCase()] = value.join(', ');
   }
   return context;
 }

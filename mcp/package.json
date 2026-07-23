@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "MCP connector for the Northwind storefront — a thin, session-authorized adapter over the storefront's REST API.",
+  "description": "MCP connector for the Northwind storefront \u2014 a thin, session-authorized adapter over the storefront's REST API.",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
@@ -12,7 +12,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "express": "^4.21.0",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "jose": "^5.9.6"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
